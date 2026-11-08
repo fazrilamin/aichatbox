@@ -1,0 +1,25 @@
+/* AI Assistant admin screens. */
+.aisa-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin: 16px 0 24px; }
+.aisa-card { padding: 4px 18px 12px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; }
+.aisa-card h2 { margin: 14px 0 8px; font-size: 15px; }
+.aisa-big { margin: 4px 0; font-size: 32px; font-weight: 600; line-height: 1.1; }
+.aisa-big span { font-size: 14px; font-weight: 400; color: #646970; }
+.aisa-progress { width: 100%; height: 10px; }
+.aisa-ok { color: #00733b; margin: 4px 0; }
+.aisa-error { color: #b32d2e; margin: 4px 0; }
+.aisa-links { margin: 0; }
+.aisa-nowrap { white-space: nowrap; }
+.aisa-pre { max-height: 360px; overflow: auto; padding: 10px 12px; background: #f6f7f7; border: 1px solid #dcdcde; border-radius: 4px; white-space: pre-wrap; font: 12px/1.5 Consolas, Monaco, monospace; }
+.aisa-results li { margin-bottom: 10px; }
+.aisa-chunk { margin: 6px 0; }
+.aisa-chunk summary, .aisa-answer summary { cursor: pointer; }
+.aisa-answer { margin: 4px 0; color: #50575e; }
+.aisa-meta { color: #646970; font-size: 12px; }
+.aisa-tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #fcf0e3; color: #8a4b00; }
+.aisa-search-form { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; }
+.aisa-robots { max-width: 760px; }
+.aisa-robots td { vertical-align: middle; }
+.aisa-ext { text-decoration: none; }
+.wp-list-table.conversations .column-rating { width: 70px; }
+.wp-list-table.conversations .column-page { width: 18%; }
+.wp-list-table.conversations .column-date { width: 110px; }

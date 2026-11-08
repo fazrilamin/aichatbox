@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+
+      - name: Lint PHP
+        run: find ai-site-assistant tools -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Version numbers match
+        run: |
+          main=ai-site-assistant/ai-site-assistant.php
+          header=$(grep -m1 -oP '^\s*\*\s*Version:\s*\K\S+' "$main")
+          const=$(grep -m1 -oP "define\(\s*'AISA_VERSION',\s*'\K[^']+" "$main")
+          stable=$(grep -m1 -oP '^Stable tag:\s*\K\S+' ai-site-assistant/readme.txt)
+          echo "header=$header AISA_VERSION=$const stable=$stable"
+          if [ "$header" != "$const" ] || [ "$header" != "$stable" ]; then
+            echo "::error::Version mismatch: header $header, AISA_VERSION $const, readme.txt Stable tag $stable"
+            exit 1
+          fi
+
+      - name: Translation template is up to date
+        if: matrix.php == '8.3'
+        run: |
+          php tools/make-pot.php
+          if ! git diff --quiet -- ai-site-assistant/languages; then
+            git diff --stat -- ai-site-assistant/languages
+            echo "::error::Strings changed. Run 'php tools/make-pot.php' and commit languages/ai-site-assistant.pot."
+            exit 1
+          fi

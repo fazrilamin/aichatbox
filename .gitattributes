@@ -1,0 +1,14 @@
+# Normalise line endings in the repository; keep LF for files that WordPress and the tools read.
+* text=auto
+*.php text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.pot text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary

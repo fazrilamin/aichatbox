@@ -1,0 +1,386 @@
+/* AI Assistant & Chatbox widget.
+   Theming: every colour, font and shadow is a --aisa-* custom property. The accent falls back to the
+   block theme's primary colour (--wp--preset--color--primary); the rest use neutral defaults.
+   Fonts follow the theme unless --aisa-font / --aisa-font-display are set.
+   Themes can override them, e.g. #aisa-widget.aisa--dark { --aisa-bg: #000; } (see docs/customization.md).
+   Selectors are prefixed with #aisa-widget so theme button/list/link styles don't leak in. */
+
+#aisa-widget,
+.aisa-launcher,
+.aisa-inline {
+	--aisa-accent: var(--wp--preset--color--primary, #4f46e5);
+	--aisa-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#aisa-widget.aisa--light {
+	--aisa-bg: #fff;
+	--aisa-surface: #f4f5f9;
+	--aisa-text: #1b1d29;
+	--aisa-muted: #5b6075;
+	--aisa-line: rgba(20, 24, 50, 0.12);
+	--aisa-user: #eceef6;
+	--aisa-link: var(--wp--preset--color--primary, #4338ca);
+	--aisa-shadow: 0 24px 60px rgba(15, 18, 40, 0.22);
+	--aisa-backdrop: rgba(15, 18, 40, 0.35);
+}
+#aisa-widget.aisa--dark {
+	--aisa-bg: #12131c;
+	--aisa-surface: #1b1d2a;
+	--aisa-text: #fff;
+	--aisa-muted: #a9abc6;
+	--aisa-line: rgba(255, 255, 255, 0.14);
+	--aisa-user: #26283d;
+	--aisa-link: #a5b4fc;
+	--aisa-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+	--aisa-backdrop: rgba(5, 5, 12, 0.6);
+}
+
+.aisa-sr,
+#aisa-widget .aisa-hp {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+html.aisa-lock { overflow: hidden; }
+
+/* Floating button */
+.aisa-launcher {
+	position: fixed;
+	right: var(--aisa-margin, 24px);
+	bottom: calc(var(--aisa-margin, 24px) + env(safe-area-inset-bottom, 0px));
+	z-index: 60;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 48px;
+	margin: 0;
+	padding: 0 20px 0 16px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--aisa-accent);
+	color: #fff;
+	font-family: var(--aisa-font, inherit);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: 0;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+	cursor: pointer;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.aisa-launcher--left { right: auto; left: var(--aisa-margin, 24px); }
+.aisa-launcher:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34); }
+.aisa-launcher:focus-visible { outline: 2px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.5); }
+.aisa-launcher svg { flex: none; }
+@media (max-width: 480px) {
+	.aisa-launcher { width: 52px; height: 52px; padding: 0; justify-content: center; }
+	.aisa-launcher span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+
+/* Dialog */
+#aisa-widget .aisa-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: var(--aisa-backdrop);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+}
+#aisa-widget .aisa-overlay[hidden] { display: none; }
+#aisa-widget .aisa-panel {
+	display: flex;
+	flex-direction: column;
+	width: min(640px, 100%);
+	max-height: min(720px, calc(100dvh - 48px));
+	overflow: hidden;
+	background: var(--aisa-bg);
+	color: var(--aisa-text);
+	border: 1px solid var(--aisa-line);
+	border-radius: 20px;
+	box-shadow: var(--aisa-shadow);
+	font-family: var(--aisa-font, inherit);
+	font-size: 15px;
+	font-weight: 400;
+	line-height: 1.55;
+	text-align: left;
+	animation: aisa-in 0.18s ease-out;
+}
+@keyframes aisa-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Attached beneath a search bar: no backdrop, positioned by the script */
+#aisa-widget.aisa--anchored .aisa-overlay {
+	display: block;
+	padding: 0;
+	background: none;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+	pointer-events: none;
+}
+#aisa-widget.aisa--anchored .aisa-panel { position: fixed; pointer-events: auto; max-height: 620px; }
+#aisa-widget.aisa--anchored .aisa-form { display: none; }
+#aisa-widget.aisa--anchored .aisa-foot { padding-top: 10px; border-top: 1px solid var(--aisa-line); }
+
+@media (max-width: 639px) {
+	#aisa-widget .aisa-overlay { padding: 0; align-items: stretch; }
+	#aisa-widget .aisa-panel { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
+}
+
+#aisa-widget .aisa-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 12px 12px 12px 18px;
+	border-bottom: 1px solid var(--aisa-line);
+}
+#aisa-widget .aisa-title {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	margin: 0;
+	color: var(--aisa-text);
+	font-family: var(--aisa-font-display, var(--aisa-font, inherit));
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: 0;
+	text-transform: none;
+}
+#aisa-widget .aisa-title svg {
+	flex: none;
+	width: 28px;
+	height: 28px;
+	padding: 5px;
+	border-radius: 9px;
+	background: var(--aisa-accent);
+	color: #fff;
+}
+#aisa-widget .aisa-icon-btn,
+#aisa-widget .aisa-fb__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--aisa-muted);
+	cursor: pointer;
+}
+#aisa-widget .aisa-icon-btn:hover,
+#aisa-widget .aisa-fb__btn:hover { background: var(--aisa-surface); color: var(--aisa-text); }
+
+#aisa-widget .aisa-log {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 14px;
+	min-height: 160px;
+	padding: 18px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+#aisa-widget .aisa-msg { max-width: 100%; overflow-wrap: anywhere; }
+#aisa-widget .aisa-msg--user {
+	align-self: flex-end;
+	max-width: 85%;
+	padding: 10px 14px;
+	border-radius: 16px 16px 4px 16px;
+	background: var(--aisa-user);
+	white-space: pre-wrap;
+}
+#aisa-widget .aisa-msg--error .aisa-md { color: var(--aisa-muted); }
+#aisa-widget .aisa-welcome { color: var(--aisa-muted); }
+#aisa-widget .aisa-md p,
+#aisa-widget .aisa-md ul,
+#aisa-widget .aisa-md ol,
+#aisa-widget .aisa-md pre { margin: 0 0 0.65em; }
+#aisa-widget .aisa-md > :last-child { margin-bottom: 0; }
+#aisa-widget .aisa-md ul,
+#aisa-widget .aisa-md ol { padding-left: 1.3em; list-style-position: outside; }
+#aisa-widget .aisa-md ul { list-style-type: disc; }
+#aisa-widget .aisa-md ol { list-style-type: decimal; }
+#aisa-widget .aisa-md li { margin: 0.2em 0; padding: 0; }
+#aisa-widget .aisa-md li::before { content: none; }
+#aisa-widget .aisa-md strong { font-weight: 600; color: var(--aisa-text); }
+#aisa-widget .aisa-md a,
+#aisa-widget .aisa-sources a { color: var(--aisa-link); text-decoration: underline; text-underline-offset: 2px; }
+#aisa-widget .aisa-md code { padding: 0.1em 0.35em; border-radius: 5px; background: var(--aisa-surface); font: 0.9em/1.4 var(--aisa-font-mono); }
+#aisa-widget .aisa-md pre { padding: 10px 12px; overflow-x: auto; border-radius: 10px; background: var(--aisa-surface); }
+#aisa-widget .aisa-md pre code { padding: 0; background: none; }
+#aisa-widget .aisa-cite { margin-left: 1px; line-height: 0; }
+#aisa-widget .aisa-cite,
+#aisa-widget .aisa-cite a {
+	display: inline-block;
+	min-width: 1.5em;
+	padding: 0 0.3em;
+	border-radius: 6px;
+	background: var(--aisa-surface);
+	color: var(--aisa-muted);
+	font-size: 0.72em;
+	font-weight: 600;
+	line-height: 1.5;
+	text-align: center;
+	text-decoration: none;
+	vertical-align: super;
+}
+#aisa-widget .aisa-cite a { padding: 0; background: none; vertical-align: baseline; }
+
+#aisa-widget .aisa-starters { display: flex; flex-wrap: wrap; gap: 8px; }
+#aisa-widget .aisa-chip {
+	margin: 0;
+	padding: 8px 14px;
+	border: 1px solid var(--aisa-line);
+	border-radius: 999px;
+	background: var(--aisa-surface);
+	color: var(--aisa-text);
+	font-family: var(--aisa-font, inherit);
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 1.35;
+	text-align: left;
+	cursor: pointer;
+}
+#aisa-widget .aisa-chip:hover { border-color: var(--aisa-link); }
+
+#aisa-widget .aisa-sources {
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px dashed var(--aisa-line);
+	color: var(--aisa-muted);
+	font-size: 13px;
+}
+#aisa-widget .aisa-sources__label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+#aisa-widget .aisa-sources ol { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
+#aisa-widget .aisa-sources li { display: flex; gap: 8px; align-items: baseline; margin: 0; padding: 0; }
+#aisa-widget .aisa-sources li::before { content: none; }
+#aisa-widget .aisa-sources__n { flex: none; min-width: 1.6em; border-radius: 6px; background: var(--aisa-surface); font-size: 11px; font-weight: 600; text-align: center; }
+
+#aisa-widget .aisa-cta {
+	display: inline-flex;
+	align-items: center;
+	margin-top: 12px;
+	padding: 10px 18px;
+	border-radius: 999px;
+	background: var(--aisa-accent);
+	color: #fff;
+	font-weight: 600;
+	text-decoration: none;
+}
+#aisa-widget .aisa-fb { display: flex; align-items: center; gap: 2px; margin-top: 6px; }
+#aisa-widget .aisa-fb__btn { width: 30px; height: 30px; }
+#aisa-widget .aisa-fb__btn svg { width: 16px; height: 16px; }
+#aisa-widget .aisa-fb__thanks { color: var(--aisa-muted); font-size: 13px; }
+
+#aisa-widget .aisa-dots { display: inline-flex; gap: 5px; padding: 8px 0; }
+#aisa-widget .aisa-dots > span:not(.aisa-sr) { width: 7px; height: 7px; border-radius: 50%; background: var(--aisa-muted); animation: aisa-dot 1s infinite ease-in-out; }
+#aisa-widget .aisa-dots > span:nth-child(2) { animation-delay: 0.15s; }
+#aisa-widget .aisa-dots > span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes aisa-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+#aisa-widget .aisa-caret { display: inline-block; width: 7px; height: 1em; margin-left: 2px; vertical-align: -0.15em; background: var(--aisa-muted); animation: aisa-blink 1s steps(2) infinite; }
+@keyframes aisa-blink { 50% { opacity: 0; } }
+
+#aisa-widget .aisa-form {
+	display: flex;
+	gap: 8px;
+	margin: 0;
+	padding: 12px;
+	border-top: 1px solid var(--aisa-line);
+}
+#aisa-widget .aisa-input {
+	flex: 1;
+	min-width: 0;
+	height: 46px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--aisa-line);
+	border-radius: 12px;
+	background: var(--aisa-surface);
+	color: var(--aisa-text);
+	font-family: var(--aisa-font, inherit);
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 1.2;
+	box-shadow: none;
+}
+#aisa-widget .aisa-input::placeholder { color: var(--aisa-muted); opacity: 1; }
+#aisa-widget .aisa-send {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 46px;
+	height: 46px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 12px;
+	background: var(--aisa-accent);
+	color: #fff;
+	cursor: pointer;
+}
+#aisa-widget .aisa-send:disabled { opacity: 0.5; cursor: progress; }
+#aisa-widget .aisa-foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 4px 12px;
+	padding: 0 16px 12px;
+	color: var(--aisa-muted);
+	font-size: 12px;
+	line-height: 1.4;
+}
+#aisa-widget .aisa-all { color: var(--aisa-link); text-decoration: underline; }
+#aisa-widget :focus-visible { outline: 2px solid var(--aisa-link); outline-offset: 2px; }
+#aisa-widget .aisa-input:focus-visible { outline-offset: 0; }
+
+/* [aisa_search] inline bar: inherits the page's colours */
+.aisa-inline { display: flex; gap: 8px; max-width: 640px; margin: 0; }
+.aisa-inline__input {
+	flex: 1;
+	min-width: 0;
+	height: 48px;
+	padding: 0 16px;
+	border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+	border-radius: 12px;
+	background: transparent;
+	color: inherit;
+	font-family: var(--aisa-font, inherit);
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 1.2;
+}
+.aisa-inline__btn {
+	flex: none;
+	height: 48px;
+	padding: 0 22px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--aisa-accent);
+	color: #fff;
+	font-family: var(--aisa-font, inherit);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1;
+	cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.aisa-launcher,
+	#aisa-widget .aisa-panel,
+	#aisa-widget .aisa-dots > span,
+	#aisa-widget .aisa-caret { transition: none; animation: none; }
+}

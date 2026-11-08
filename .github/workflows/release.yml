@@ -1,0 +1,70 @@
+name: Release
+
+# Push a tag like v1.2.0, or publish a release with a new v1.2.0 tag on github.com (Releases →
+# Draft a new release). Either way this workflow builds ai-site-assistant-<version>.zip and attaches
+# it to the release; sites running the plugin only pick up updates from that asset.
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+# A web-created release can fire both events; run them one after the other.
+concurrency:
+  group: release-${{ github.ref_name }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches the plugin version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          main=ai-site-assistant/ai-site-assistant.php
+          header=$(grep -m1 -oP '^\s*\*\s*Version:\s*\K\S+' "$main")
+          const=$(grep -m1 -oP "define\(\s*'AISA_VERSION',\s*'\K[^']+" "$main")
+          stable=$(grep -m1 -oP '^Stable tag:\s*\K\S+' ai-site-assistant/readme.txt)
+          if [ "$version" != "$header" ] || [ "$version" != "$const" ] || [ "$version" != "$stable" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match header $header, AISA_VERSION $const, readme.txt Stable tag $stable"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Lint PHP
+        run: find ai-site-assistant -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Build the plugin zip
+        run: |
+          mkdir -p dist
+          zip -rq "dist/ai-site-assistant-$VERSION.zip" ai-site-assistant -x '*.DS_Store' '*Thumbs.db'
+          unzip -l "dist/ai-site-assistant-$VERSION.zip" | tail -n 1
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 || index($0, "## " v " ") == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "See [CHANGELOG.md](CHANGELOG.md)." > notes.md; fi
+          cat notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip="dist/ai-site-assistant-$VERSION.zip"
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            # Created on github.com (or by an earlier run): just attach or replace the zip.
+            gh release upload "$GITHUB_REF_NAME" "$zip" --clobber
+          else
+            pre=""
+            case "$VERSION" in *-*) pre="--prerelease" ;; esac
+            gh release create "$GITHUB_REF_NAME" "$zip" \
+              --title "AI Assistant & Chatbox $VERSION" --notes-file notes.md $pre
+          fi
